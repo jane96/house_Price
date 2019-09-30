@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import make_scorer,accuracy_score,roc_auc_score
+from sklearn.model_selection import train_test_split,cross_val_score
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -8,7 +9,13 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import AdaBoostRegressor
 from xgboost.sklearn import XGBRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso
+from mlxtend.regressor import StackingRegressor
+from time import time
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
@@ -83,56 +90,56 @@ def data_fill(data):
 
     data['TotalArea'] = data['LotFrontage'] + data['LotArea'] + data['1stFlrSF'] + data['2ndFlrSF']
 
-    data.loc[data['GarageQual'] == 'Gd','GarageQual'] = 8
-    data.loc[data['GarageQual'] == 'TA','GarageQual'] = 6
-    data.loc[data['GarageQual'] == 'Fa','GarageQual'] = 4
-    data.loc[data['GarageQual'] == 'Po','GarageQual'] = 2
-    data.loc[data['GarageQual'] == 'NA','GarageQual'] = -1
-    data.loc[data['GarageQual'] == 'null','GarageQual'] = 0
-
-    data.loc[data['ExterQual'] == 'Ex','ExterQual'] = 10
-    data.loc[data['ExterQual'] == 'Gd','ExterQual'] = 8
-    data.loc[data['ExterQual'] == 'TA','ExterQual'] = 6
-    data.loc[data['ExterQual'] == 'Fa','ExterQual'] = 4
-    data.loc[data['ExterQual'] == 'Po','ExterQual'] = 2
-
-    data.loc[data['ExterCond'] == 'Ex', 'ExterCond'] = 10
-    data.loc[data['ExterCond'] == 'Gd', 'ExterCond'] = 8
-    data.loc[data['ExterCond'] == 'TA', 'ExterCond'] = 6
-    data.loc[data['ExterCond'] == 'Fa', 'ExterCond'] = 4
-    data.loc[data['ExterCond'] == 'Po', 'ExterCond'] = 2
-
-    data.loc[data['BsmtQual'] == 'Ex', 'BsmtQual'] = 10
-    data.loc[data['BsmtQual'] == 'Gd', 'BsmtQual'] = 8
-    data.loc[data['BsmtQual'] == 'TA', 'BsmtQual'] = 6
-    data.loc[data['BsmtQual'] == 'Fa', 'BsmtQual'] = 4
-    data.loc[data['BsmtQual'] == 'Po', 'BsmtQual'] = 2
-    data.loc[data['BsmtQual'] == 'null', 'BsmtQual'] = 0
-    data.loc[data['BsmtQual'] == 'NA', 'BsmtQual'] = -1
-
-    data.loc[data['BsmtCond'] == 'Ex', 'BsmtCond'] = 10
-    data.loc[data['BsmtCond'] == 'Gd', 'BsmtCond'] = 8
-    data.loc[data['BsmtCond'] == 'TA', 'BsmtCond'] = 6
-    data.loc[data['BsmtCond'] == 'Fa', 'BsmtCond'] = 4
-    data.loc[data['BsmtCond'] == 'Po', 'BsmtCond'] = 2
-    data.loc[data['BsmtQual'] == 'null', 'BsmtQual'] = 0
-    data.loc[data['BsmtCond'] == 'NA', 'BsmtCond'] = -1
-
-    data.loc[data['BsmtExposure'] == 'Gd', 'BsmtExposure'] = 10
-    data.loc[data['BsmtExposure'] == 'Av', 'BsmtExposure'] = 8
-    data.loc[data['BsmtExposure'] == 'Mn', 'BsmtExposure'] = 6
-    data.loc[data['BsmtExposure'] == 'No', 'BsmtExposure'] = 4
-    data.loc[data['BsmtExposure'] == 'null', 'BsmtExposure'] = 0
-    data.loc[data['BsmtExposure'] == 'NA', 'BsmtExposure'] = -2
-
-    data.loc[data['BsmtFinType1'] == 'GLQ', 'BsmtFinType1'] = 10
-    data.loc[data['BsmtFinType1'] == 'ALQ', 'BsmtFinType1'] = 8
-    data.loc[data['BsmtFinType1'] == 'BLQ', 'BsmtFinType1'] = 6
-    data.loc[data['BsmtFinType1'] == 'Rec', 'BsmtFinType1'] = 4
-    data.loc[data['BsmtFinType1'] == 'LwQ', 'BsmtFinType1'] = 2
-    data.loc[data['BsmtFinType1'] == 'Unf', 'BsmtFinType1'] = 0
-    data.loc[data['BsmtFinType1'] == 'null', 'BsmtFinType1'] = 0
-    data.loc[data['BsmtFinType1'] == 'NA', 'BsmtFinType1'] = -2
+    # data.loc[data['GarageQual'] == 'Gd','GarageQual'] = 8
+    # data.loc[data['GarageQual'] == 'TA','GarageQual'] = 6
+    # data.loc[data['GarageQual'] == 'Fa','GarageQual'] = 4
+    # data.loc[data['GarageQual'] == 'Po','GarageQual'] = 2
+    # data.loc[data['GarageQual'] == 'NA','GarageQual'] = -1
+    # data.loc[data['GarageQual'] == 'null','GarageQual'] = 0
+    #
+    # data.loc[data['ExterQual'] == 'Ex','ExterQual'] = 10
+    # data.loc[data['ExterQual'] == 'Gd','ExterQual'] = 8
+    # data.loc[data['ExterQual'] == 'TA','ExterQual'] = 6
+    # data.loc[data['ExterQual'] == 'Fa','ExterQual'] = 4
+    # data.loc[data['ExterQual'] == 'Po','ExterQual'] = 2
+    #
+    # data.loc[data['ExterCond'] == 'Ex', 'ExterCond'] = 10
+    # data.loc[data['ExterCond'] == 'Gd', 'ExterCond'] = 8
+    # data.loc[data['ExterCond'] == 'TA', 'ExterCond'] = 6
+    # data.loc[data['ExterCond'] == 'Fa', 'ExterCond'] = 4
+    # data.loc[data['ExterCond'] == 'Po', 'ExterCond'] = 2
+    #
+    # data.loc[data['BsmtQual'] == 'Ex', 'BsmtQual'] = 10
+    # data.loc[data['BsmtQual'] == 'Gd', 'BsmtQual'] = 8
+    # data.loc[data['BsmtQual'] == 'TA', 'BsmtQual'] = 6
+    # data.loc[data['BsmtQual'] == 'Fa', 'BsmtQual'] = 4
+    # data.loc[data['BsmtQual'] == 'Po', 'BsmtQual'] = 2
+    # data.loc[data['BsmtQual'] == 'null', 'BsmtQual'] = 0
+    # data.loc[data['BsmtQual'] == 'NA', 'BsmtQual'] = -1
+    #
+    # data.loc[data['BsmtCond'] == 'Ex', 'BsmtCond'] = 10
+    # data.loc[data['BsmtCond'] == 'Gd', 'BsmtCond'] = 8
+    # data.loc[data['BsmtCond'] == 'TA', 'BsmtCond'] = 6
+    # data.loc[data['BsmtCond'] == 'Fa', 'BsmtCond'] = 4
+    # data.loc[data['BsmtCond'] == 'Po', 'BsmtCond'] = 2
+    # data.loc[data['BsmtQual'] == 'null', 'BsmtQual'] = 0
+    # data.loc[data['BsmtCond'] == 'NA', 'BsmtCond'] = -1
+    #
+    # data.loc[data['BsmtExposure'] == 'Gd', 'BsmtExposure'] = 10
+    # data.loc[data['BsmtExposure'] == 'Av', 'BsmtExposure'] = 8
+    # data.loc[data['BsmtExposure'] == 'Mn', 'BsmtExposure'] = 6
+    # data.loc[data['BsmtExposure'] == 'No', 'BsmtExposure'] = 4
+    # data.loc[data['BsmtExposure'] == 'null', 'BsmtExposure'] = 0
+    # data.loc[data['BsmtExposure'] == 'NA', 'BsmtExposure'] = -2
+    #
+    # data.loc[data['BsmtFinType1'] == 'GLQ', 'BsmtFinType1'] = 10
+    # data.loc[data['BsmtFinType1'] == 'ALQ', 'BsmtFinType1'] = 8
+    # data.loc[data['BsmtFinType1'] == 'BLQ', 'BsmtFinType1'] = 6
+    # data.loc[data['BsmtFinType1'] == 'Rec', 'BsmtFinType1'] = 4
+    # data.loc[data['BsmtFinType1'] == 'LwQ', 'BsmtFinType1'] = 2
+    # data.loc[data['BsmtFinType1'] == 'Unf', 'BsmtFinType1'] = 0
+    # data.loc[data['BsmtFinType1'] == 'null', 'BsmtFinType1'] = 0
+    # data.loc[data['BsmtFinType1'] == 'NA', 'BsmtFinType1'] = -2
     #
     # data.loc[data['BsmtFinType2'] == 'GLQ', 'BsmtFinType2'] = 10
     # data.loc[data['BsmtFinType2'] == 'ALQ', 'BsmtFinType2'] = 8
@@ -193,67 +200,99 @@ def data_process(data, isTrain=True):
     data_n = data_normalize(data_f, normal_list)
     data_d = data_dummies(data_n, isTrain)
 
-    train, test = data_split(data_d, 0.2)
+    train, test = data_split(data_d, 0.1)
 
     return train, test
 
 
 def validation_process(data):
     data_f = data_fill(data)
-    normal_list = ['LotArea', 'YearBuilt', 'YearRemodAdd', 'GarageQual', 'BsmtFinSF2']
+    normal_list = ['LotArea', 'YearBuilt', 'YearRemodAdd', 'GarageQual', 'BsmtFinSF1','BsmtUnfSF','BsmtFinSF2','TotalBsmtSF','GrLivArea','1stFlrSF', '2ndFlrSF','GarageArea' ,'WoodDeckSF', 'OpenPorchSF', ]
     data_n = data_normalize(data_f, normal_list)
     data_d = data_dummies(data_n, False)
     return data_d
+def scorer(predction,truth):
+    v = ((truth - predction) ** 2).sum()
+    u = ((truth - truth.mean()) ** 2).sum()
+    return (1- u / v)
+def train_model():
+    origin = pd.read_csv("~/dataset/housePrice/originData/train.csv", engine='python')
 
-
-def alg_model(train, test):
+    train, test = data_process(origin)
     knn = KNeighborsRegressor(weights='uniform')
+    knn_par = {'n_neighbors':range(5,10)}
 
-    knn.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("knn  regrssion score is : {}".format(
-        knn.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
+    dt = DecisionTreeRegressor(random_state=35)
+    dt_par = {"max_depth":range(5,8)}
 
-    dt = DecisionTreeRegressor()
-    dt.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("decision tree  regrssion score is : {}".format(
-        dt.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
+    rfr = RandomForestRegressor(random_state=35,n_jobs=-1)
+    rfr_par = {'max_features':range(20,50),'min_sample_leaf':range(30,60)}
 
-    rfr = RandomForestRegressor()
-    rfr.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("random forest   regrssion score is : {}".format(
-        rfr.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
+    gbr = GradientBoostingRegressor(random_state=35)
+    gbr_par = {'n_estimators':range(95,105),'learning_rate':np.arange(0.1,0.9,0.05)}
 
-    gbr = GradientBoostingRegressor()
-    gbr.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("gradient boosting   regrssion score is : {}".format(
-        gbr.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
+    ada = AdaBoostRegressor(random_state=35)
+    ada_par = {'n_estimators':range(50,60),'learning_rate':np.arange(0.1,1,0.05)}
 
-    ada = AdaBoostRegressor()
-    ada.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("ada boosting   regrssion score is : {}".format(
-        ada.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
+    xgb = XGBRegressor(random_state=35)
+    xgb_par = {'n_estimators':range(95,105)}
 
-    xgb = XGBRegressor()
-    xgb.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
-    print("XGBoosting   regrssion score is : {}".format(
-        xgb.score(test.as_matrix()[:, 1:], test.as_matrix()[:, 0])))
-    # return [knn, dt, rfr, gbr, ada, xgb]
-    return [gbr,xgb]
+    algs = [ada,xgb]
+    params= [ada_par,xgb_par]
+    for i in range(len(algs)):
+        fit_model(algs[i],train,params[i])
+    print('finish model fitting!')
+def fit_model(alg,data,parameters):
+    x = data.as_matrix()[:,1:]
+    y = data.as_matrix()[:,0]
+    score = make_scorer(scorer)
+    grid = GridSearchCV(alg,parameters,scoring='neg_mean_squared_error',cv=5)
+    start = time()
+    grid = grid.fit(x,y)
+    end = time()
+    t = round(end - start,3)
+    print(grid.best_params_)
+    print('searching time for {} is {} s'.format(alg.__class__.__name__,t))
+    return grid
+def run_model(train,test,algs):
+    new_algs = []
+    for alg in algs:
+        alg.fit(train.as_matrix()[:, 1:], train.as_matrix()[:, 0])
+        new_algs.append(alg)
+        print("current {} score is : {}".format(alg.__class__.__name__,alg.score(test.as_matrix()[:,1:],test.as_matrix()[:,0])))
+    return new_algs
+def alg_model(train, test):
+    knn = KNeighborsRegressor(weights='uniform',n_neighbors=5)
+    dt = DecisionTreeRegressor(max_depth=6)
+    rfr = RandomForestRegressor(n_estimators=400)
+    gbr = GradientBoostingRegressor(n_estimators=104)
+    ada = AdaBoostRegressor(learning_rate=0.8,n_estimators=57)
+    xgb = XGBRegressor(n_estimators=104)
+    algs = [knn, dt, rfr, gbr, ada, xgb]
+    lr = LinearRegression()
+    sclf = StackingRegressor(regressors= [gbr, xgb], meta_regressor=lr)
+    algs.append(sclf)
+    algs = run_model(train,test,algs)
+    return algs
 
 def run(origin, data, algs):
     cols = list(data)
     print("nan is : {} ".format(data.columns[np.where(np.isnan(data))[1]]))
     predict_list = []
     for alg in algs:
-        prediction = alg.predict(data.as_matrix()[:, :])
+        prediction = alg.predict(data.as_matrix()[:,:])
         predict_list.append(prediction)
         print("current alg is : {}".format(alg.__class__.__name__))
         result = pd.DataFrame(
             {'Id': origin['Id'].as_matrix(), 'SalePrice': prediction.astype(np.float32)}
         )
         result.to_csv("~/dataset/housePrice/result/{}.csv".format(alg.__class__.__name__), index=False)
+    value = np.zeros(len(predict_list[0]))
+
+    for pre in predict_list:
+        value += pre / len(algs)
     boost_result = pd.DataFrame(
-            {'Id': origin['Id'].as_matrix(), 'SalePrice':  (predict_list[0] / 2 + predict_list[1] / 2).astype(np.float32)}
+            {'Id': origin['Id'].as_matrix(), 'SalePrice':  (value).astype(np.float32)}
         )
 
     boost_result.to_csv("~/dataset/housePrice/result/gradient_xgb_boost.csv", index=False)
